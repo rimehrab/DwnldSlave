@@ -1,0 +1,57 @@
+name: Download, Split 'if' & release 
+
+on:
+  push:
+    paths:
+      - link # Trigger only when the link file is updated in the repository
+
+jobs:
+  download-split-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Read URL from the "link" file
+      - name: Read URL from file
+        id: read_url
+        run: |
+          URL=$(cat link)
+          echo "url=$URL" >> $GITHUB_ENV
+
+      # Step 3: Download the file using the URL
+      - name: Download File
+        run: |
+          wget -O downloaded_file "$url"
+
+      # Step 4: Check file size and conditionally split
+      - name: Check and Split File
+        id: split_check
+        run: |
+          FILE_SIZE=$(stat -c%s "downloaded_file")
+          MAX_SIZE=$((2 * 1024 * 1024 * 1024)) # 2GB in bytes
+          ORIGINAL_FILENAME=$(basename "$url")
+          if [ "$FILE_SIZE" -gt "$MAX_SIZE" ]; then
+            FILE_EXTENSION="${ORIGINAL_FILENAME##*.}"
+            BASE_NAME="${ORIGINAL_FILENAME%.*}"
+            split -b 2G downloaded_file "${BASE_NAME}.${FILE_EXTENSION}.part_"
+            echo "split=true" >> $GITHUB_ENV
+          else
+            mv downloaded_file "$ORIGINAL_FILENAME"
+            echo "split=false" >> $GITHUB_ENV
+            echo "file_name=$ORIGINAL_FILENAME" >> $GITHUB_ENV
+          fi
+          echo "original_filename=$ORIGINAL_FILENAME" >> $GITHUB_ENV
+
+      # Step 5: Create or Update a Release and Upload Files
+      - name: Create or Update GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: release-${{ github.run_number }}
+          release_name: "Release for ${{ env.original_filename }}"
+          body: |
+            This release contains the downloaded file(s). These files will be deleted after a certain period.
+          files: |
+            ${{ env.split == 'true' && '*.part_*' || env.file_name }}
