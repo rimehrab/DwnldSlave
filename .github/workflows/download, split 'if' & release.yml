@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # Grant write access to allow creating releases
+  contents: write # Grant write access to allow creating releases (thanks ia)
 
 jobs:
   download-split-release:
@@ -57,7 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: release-${{ github.run_number }}
-          release_name: "Release for ${{ env.original_filename }}"
+          release_name: "${{ env.original_filename }}"
           body: |
             This release contains the downloaded file(s). These files will be deleted after a certain period.
           draft: false
