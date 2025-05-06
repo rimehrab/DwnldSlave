@@ -3,8 +3,11 @@ name: Download, Split 'if' & Release
 on:
   push:
     paths:
-      - link # Trigger only when the link file is updated in the repository
-  workflow_dispatch: # Manual triggering
+      - link
+  workflow_dispatch:
+
+permissions:
+  contents: write # Grant write access to allow creating releases
 
 jobs:
   download-split-release:
