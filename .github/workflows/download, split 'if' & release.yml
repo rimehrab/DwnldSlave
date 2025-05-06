@@ -46,13 +46,27 @@ jobs:
           fi
           echo "original_filename=$ORIGINAL_FILENAME" >> $GITHUB_ENV
 
-      # Step 5: Create or Update a Release and Upload Files
-      - name: Create or Update GitHub Release
+      # Step 5: Create a GitHub Release
+      - name: Create GitHub Release
+        id: create_release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: release-${{ github.run_number }}
           release_name: "Release for ${{ env.original_filename }}"
           body: |
             This release contains the downloaded file(s). These files will be deleted after a certain period.
-          files: |
-            ${{ env.split == 'true' && '*.part_*' || env.file_name }}
+          draft: false
+          prerelease: false
+
+      # Step 6: Upload File(s) to Release
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.split == 'true' && '*.part_*' || env.file_name }}
+          asset_name: ${{ env.split == 'true' && '*.part_*' || env.file_name }}
+          asset_content_type: application/octet-stream
